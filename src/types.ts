@@ -71,3 +71,31 @@ export interface Store<T = unknown> {
 	/** Optional, and may be O(n) on a store that has to scan a key prefix. */
 	clear?(): Promise<void>;
 }
+
+/**
+ * Everything observable. Reported, never thrown.
+ *
+ * `action-error` and `store-error` carry what went wrong; the rest are facts
+ * about what the cache did, so a listener counts them without unpacking an
+ * error it does not need.
+ */
+export type Event =
+	| { type: "hit"; key: string; state: "fresh" | "stale" | "retained"; age: number }
+	| { type: "miss"; key: string }
+	| { type: "write"; key: string; retainFor: number }
+	| { type: "skip"; key: string }
+	| { type: "refresh"; key: string; ok: boolean }
+	| { type: "served-stale"; key: string; age: number }
+	/**
+	 * The action failed. Emitted wherever an action throws (on a miss before the
+	 * error is rethrown, under a retained entry before it is served, and behind a
+	 * stale read), so that upstream failure rate is one count rather than three.
+	 * `background` marks the refresh case, which no caller awaited.
+	 */
+	| { type: "action-error"; key: string; error: unknown; background: boolean }
+	| {
+			type: "store-error";
+			key: string;
+			operation: "get" | "set" | "delete" | "clear";
+			error: unknown;
+	  };

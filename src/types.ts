@@ -35,3 +35,13 @@ export type Decision<T> =
 // will be used to decide whether if this is worth storing + how long it would stay (undefined will decline the write)
 export type Freshness<T> = (value: T) => Windows | undefined;
 
+// `previous` refers to the entry that the store still holds. It will use undefined if the store holds nothing.
+export type Action<T> = (previous: Entry<T> | undefined) => T | Promise<T>;
+
+// value + where it came from
+export interface Result<T> {
+	value: T;
+	state: ReadState;
+	// milliseconds, only zero when it comes from the actions
+	age: number;
+}

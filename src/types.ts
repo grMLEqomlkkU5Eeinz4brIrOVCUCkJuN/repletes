@@ -21,3 +21,17 @@ export interface Entry<T> extends Windows {
 	/**Milliseconds, from the clock of whoevery wrote the entry*/
 	storedAt: number;
 }
+
+// "miss" means that the value came from the action, not the structutre.
+export type ReadState = "fresh" | "stale" | "retained" | "miss";
+
+// decision per entry
+export type Decision<T> =
+	| { state: "fresh"; value: T; age: number }
+	| { state: "stale"; value: T; age: number }
+	| { state: "retained"; value: T; age: number }
+	| { state: "miss" };
+
+// will be used to decide whether if this is worth storing + how long it would stay (undefined will decline the write)
+export type Freshness<T> = (value: T) => Windows | undefined;
+

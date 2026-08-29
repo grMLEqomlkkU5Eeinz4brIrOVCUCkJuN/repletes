@@ -1,110 +1,40 @@
-# @grml/lib-template
+# Repletes (Coming Soon)
+![repletes logo](./assets/logo.png)
 
-An ESM-friendly TypeScript library template, set up for testing and CI.
+Repletes is a cache policy engine for arbitrary async computations. You supply the key, store, and freshness/retention windows; Repletes decides whether to serve, refresh, replace, or rethrow. Its stale-while-revalidate and stale-if-error semantics are inspired by RFC 5861, with optional HTTP response support.
 
-> Publishing and deployment are handled manually (custom npm settings), so no
-> release/publish workflow is included here.
+## Repletes Does/Does Nots
 
-## What's inside
+| Repletes Owns | Not Repletes |
+|---|---|
+| The read decision: fresh -> serve, stale -> serve and refresh behind, retained -> serve only if the action failed, otherwise miss | Key derivation, normalization, hashing |
+| The windows, measured from storedAt against a clock you can swap in tests | Eviction for capacity, which is the store's |
+| Retention math: freshFor + max(swr, sie) going into the store, re-checked coming out | Deciding when to invalidate, which is the caller's |
+| Background refresh: one per key, never awaited, never an unhandled rejection, existing entry left intact if it fails | Retries, deadlines, dedup, which are Firefly's |
+| Stale-if-error: catch, decide, rethrow the original error untouched | Hash-as-key |
+| Writing once per completed action, and never writing a failure unless asked | |
+| The Store interface, plus MemoryStore | |
+| Namespace and version prefixing on keys | |
+| forget(key) and clear() as mechanisms | |
+| onEvent | |
+| HTTP half: clone before storing, serialise status/headers/bytes, drop Set-Cookie and hop-by-hop headers, hand each caller a fresh Response, and treat a 304 as refresh-the-timestamps rather than replace-the-body | |
 
-- **ESM-native**: `"type": "module"`, `nodenext` module resolution,
-  `verbatimModuleSyntax`, and a thin `index.ts` barrel that re-exports from
-  `src/` using `.js` specifiers.
-- **TypeScript**: strict `tsconfig.json` emitting JS to `dist/` and `.d.ts`
-  (plus declaration maps) to `dist/types/`.
-- **Testing**: Node's built-in test runner (`node:test` / `node:assert`) run
-  directly against TypeScript via [`tsx`](https://tsx.is). No extra framework,
-  no compile step, and nothing test-related ends up in `dist/`.
-- **Linting**: flat ESLint config built on `@eslint/js` and `typescript-eslint`
-  recommended sets, plus the project rules (tabs, double quotes, `no-console`,
-  ignore-pattern-aware unused checks, return-type hints).
-- **API docs**: [TypeDoc](https://typedoc.org) generates HTML docs from your
-  TSDoc comments into `docs/` (`npm run docs`).
-- **Conventional Commits**: `commitlint` enforces the
-  [Conventional Commits](https://www.conventionalcommits.org) format, and
-  [git-cliff](https://git-cliff.org) turns that history into a `CHANGELOG.md`
-  (`npm run changelog`).
-- **Git hooks**: [lefthook](https://lefthook.dev) runs ESLint on staged files
-  before commit and lints the commit message, installed automatically via the
-  `prepare` script.
-- **CI**: `.github/workflows/ci.yml` runs lint, typecheck, test, and build
-  across Linux/macOS/Windows on Node 22 and 24, builds the docs, and uploads
-  the `dist/` artifact.
-- **Editor config**: `.vscode/` recommends the ESLint + Todo Tree extensions
-  and wires up format-on-save via ESLint.
-- **Node version**: `.nvmrc` pins Node 22 (`nvm use`).
-- **Dependabot**: daily npm + GitHub Actions update PRs.
+### Design Sidenotes
+When I was working on my own project, I felt that I was perhaps too pedantic when it came to how stale-if-error was handled. I wanted something that could clearly communitycate whether something returned was freshed or if it was just fallback stale data due to failures upstream somewhere. I want people to think this library more so for the cache policies and less so the storage mecahnism. Also this is NOT a http cache, it just happens to have a transport that supports it.
 
-## Getting started
+### About keys
 
-1. Copy this directory, run `git init` (if needed), then `npm install`, which
-   also installs the git hooks via the `prepare` script.
-2. Update `package.json` (`name`, `description`, `repository`, `keywords`).
-3. Replace `src/greet.ts` with your implementation and update the re-exports in
-   `index.ts`.
-4. Add tests under `tests/` as `*.test.ts`.
+Repletes doesn't care what the key looks like. A URL, a UUID, whatever: it all works the same. No hashing, no normalization, no derivation logic lives here.
 
-## Scripts
+If you're using content-addressed keys (where the key is derived from the content), that's on you. The upside: the entry can never go stale since the content determines the key. The downside: Repletes has no way to detect a collision if you hash wrong. That risk is yours now, not ours.
 
-| Script | What it does |
-| --- | --- |
-| `npm run build` | Compile `src/` + `index.ts` to `dist/` with type declarations. |
-| `npm run typecheck` | Type-check without emitting. |
-| `npm run lint` | Run ESLint. |
-| `npm run lint:fix` | Run ESLint and auto-fix what it can. |
-| `npm test` | Run the test suite with the Node test runner via `tsx`. |
-| `npm run docs` | Generate HTML API docs into `docs/` with TypeDoc. |
-| `npm run changelog` | Regenerate `CHANGELOG.md` from the commit history with git-cliff. |
+### API details
 
-## Conventional commits & git hooks
+Hashing a request body is async, so here's how it shakes out:
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org)
-(`feat:`, `fix:`, `chore:`, etc.). On `npm install`, the `prepare` script
-installs [lefthook](https://lefthook.dev) git hooks. This requires a git
-repository, so run `git init` first if you copied the directory.
+- `wrap(key: string, action)` takes a plain string. Hash the body yourself if you need to.
+- The HTTP transport's `key(request)` can return either `string` or `Promise<string>`.
+- Repletes clones the request before handing it to `key()`, otherwise the body gets consumed and you've got nothing left to send.
 
-- **pre-commit**: runs ESLint on staged JS/TS files.
-- **commit-msg**: validates the message with `commitlint`.
-
-Because the history is conventional, `npm run changelog` can regenerate
-`CHANGELOG.md` automatically.
-
-## Project layout
-
-```
-.
-├── index.ts                # public barrel, re-export your API here
-├── src/                    # implementation
-│   └── greet.ts
-├── tests/                  # *.test.ts, run with node --test via tsx
-│   ├── greet.test.ts
-│   └── tsconfig.json       # type-checks tests against the source
-├── eslint.config.mjs
-├── tsconfig.json
-├── typedoc.json            # TypeDoc config (npm run docs)
-├── commitlint.config.js    # Conventional Commits rules
-├── cliff.toml              # git-cliff changelog config
-├── lefthook.yml            # git hooks (lint + commitlint)
-├── release.sh              # version bump + changelog + annotated tag
-├── .nvmrc                  # pinned Node version
-├── .vscode/                # recommended extensions + editor settings
-└── .github/
-    ├── ISSUE_TEMPLATE/     # bug report + feature request
-    ├── workflows/ci.yml
-    └── dependabot.yml
-```
-
-## Publishing (manual)
-
-Only `dist/` is published (`"files": ["dist"]` in `package.json`, with
-`.npmignore` as a backstop). Build first, then publish with your custom npm
-settings:
-
-```sh
-npm run build
-npm publish   # with whatever registry/auth settings you use
-```
-
-To cut a release first, `./release.sh v[X.Y.Z]` bumps the version in
-`package.json`, regenerates `CHANGELOG.md`, commits, and creates an annotated
-tag. Then `git push && git push --tags` and publish as above.
+### Random Lore
+Repletes are not actually a species of insects and the logo isn't really accurate. Repletes refer to a caste of ants that act as living food storage tanks for their colony. This happens to only rough 20 different species out of the thousands of different ant species.

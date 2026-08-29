@@ -4,8 +4,11 @@
  * property of your data, so all three numbers are required.
  */
 export interface Windows { // hee hee windows
+	/** How long a stored value answers a read outright. */
 	freshFor: number;
+	/** How long past `freshFor` a value is served while a refresh runs behind it. */
 	staleWhileRevalidate: number;
+	/** How long past `freshFor` a value is served, but only if the action failed. */
 	staleIfError: number;
 }
 

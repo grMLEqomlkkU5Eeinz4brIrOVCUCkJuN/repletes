@@ -1,5 +1,5 @@
 # Repletes (Coming Soon)
-![repletes logo](./assets/logo.png)
+![repletes logo](https://github.com/Smiduweorc/Repletes/raw/master/assets/logo.png)
 
 Repletes is a cache policy engine for arbitrary async computations. You supply the key, store, and freshness/retention windows; Repletes decides whether to serve, refresh, replace, or rethrow. Its stale-while-revalidate and stale-if-error semantics are inspired by RFC 5861, with optional HTTP response support.
 

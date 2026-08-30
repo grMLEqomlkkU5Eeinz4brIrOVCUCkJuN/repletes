@@ -13,7 +13,10 @@ import type { Decision, Entry } from "./types.js";
  * A clock that went backwards is treated as an entry stored this instant. A
  * store handing back something from the future is not a reason to throw.
  */
-export function decide<T>(entry: Entry<T> | undefined, now: number): Decision<T> {
+export function decide<T>(
+	entry: Entry<T> | undefined,
+	now: number
+): Decision<T> {
 	if (entry === undefined) return { state: "miss" };
 
 	const age = Math.max(0, now - entry.storedAt);

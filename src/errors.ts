@@ -6,8 +6,7 @@ export type RepletesErrorCode =
 	| "invalid-windows"
 	| "invalid-key"
 	| "invalid-capacity"
-	| "clear-unsupported"
-	| "clear-unscoped";
+	| "clear-unsupported";
 
 /**
  * Everything repletes throws, so a consumer can tell our refusal from their own

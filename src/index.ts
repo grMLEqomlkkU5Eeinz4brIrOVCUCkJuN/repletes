@@ -8,7 +8,7 @@ export {
 	type HasCacheControl,
 	type HeadersLike,
 } from "./cache-control.js";
-export { MemoryStore, type MemoryStoreOptions } from "./MemoryStore.js";
+export { MemoryStore, type MemoryStoreOptions } from "./memory-store.js";
 export type {
 	Action,
 	Codec,

@@ -3,7 +3,7 @@
  * {@link Cache} was constructed with. There are no defaults: freshness is a
  * property of your data, so all three numbers are required.
  */
-export interface Windows { // hee hee windows
+export interface Windows {
 	/** How long a stored value answers a read outright. */
 	freshFor: number;
 	/** How long past `freshFor` a value is served while a refresh runs behind it. */
@@ -13,47 +13,31 @@ export interface Windows { // hee hee windows
 }
 
 /**
- * This is what the store holds exactly. The window travel with the value rather than living on the cache, so the retention can be re-checked on the way out.
- * That said, the config change will never silently re-interpret wha is already written down.
+ * What a store holds. The windows travel with the value rather than living on
+ * the cache, so retention can be re-checked on the way out and a config change
+ * never silently reinterprets what is already written down.
  */
 export interface Entry<T> extends Windows {
 	value: T;
-	/**Milliseconds, from the clock of whoevery wrote the entry*/
+	/** Milliseconds, from the clock of whoever wrote the entry. */
 	storedAt: number;
 }
 
-/** "miss" means that the value came from the action, not the structutre. */
+/** What a read did. `miss` means the value came from the action, not the store. */
 export type ReadState = "fresh" | "stale" | "retained" | "miss";
 
-/** decision per entry */
+/** The policy decision over one entry. Pure: no store, no clock, no promises. */
 export type Decision<T> =
 	| { state: "fresh"; value: T; age: number }
 	| { state: "stale"; value: T; age: number }
 	| { state: "retained"; value: T; age: number }
 	| { state: "miss" };
 
-/** will be used to decide whether if this is worth storing + how long it would stay (undefined will decline the write) */
-export type Freshness<T> = (value: T) => Windows | undefined;
-
-/** `previous` refers to the entry that the store still holds. It will use undefined if the store holds nothing. */
-export type Action<T> = (previous: Entry<T> | undefined) => T | Promise<T>;
-
-/** value + where it came from */
-export interface Result<T> {
-	value: T;
-	state: ReadState;
-	/** milliseconds, only zero when it comes from the actions */
-	age: number;
-}
-
 /**
- * to be used for turning an out of process {@link Store} entry into something it can hold.
- * repletes never calls this itself, but the store may use it to serialize and deserialize entries.
-*/
-export interface Codec<T, Wire = string> {
-	encode(entry: Entry<T>): Wire | Promise<Wire>;
-	decode(wire: Wire): Entry<T> | Promise<Entry<T>>;
-}
+ * Decides whether a completed value is worth storing and for how long.
+ * Returning `undefined` declines the write.
+ */
+export type Freshness<T> = (value: T) => Windows | undefined;
 
 /**
  * Where the bytes live. Async everywhere, including in memory, so that moving
@@ -70,6 +54,30 @@ export interface Store<T = unknown> {
 	delete(key: string): Promise<void>;
 	/** Optional, and may be O(n) on a store that has to scan a key prefix. */
 	clear?(): Promise<void>;
+}
+
+/**
+ * The work behind a key. `previous` is whatever the store still holds, in any
+ * state, so an action can revalidate against it. It is `undefined` when the
+ * store held nothing.
+ */
+export type Action<T> = (previous: Entry<T> | undefined) => T | Promise<T>;
+
+/** A value plus where it came from. */
+export interface Result<T> {
+	value: T;
+	state: ReadState;
+	/** Age of the served entry in milliseconds. Zero when the action produced it. */
+	age: number;
+}
+
+/**
+ * How an out-of-process {@link Store} turns entries into something it can hold.
+ * repletes never calls this itself; it is here so adapters agree on a shape.
+ */
+export interface Codec<T, Wire = string> {
+	encode(entry: Entry<T>): Wire | Promise<Wire>;
+	decode(wire: Wire): Entry<T> | Promise<Entry<T>>;
 }
 
 /**

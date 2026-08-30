@@ -8,7 +8,6 @@ export interface MemoryStoreOptions {
 	now?: () => number;
 }
 
-
 /**
  * In-process store. Evicts the least recently used entry once `maxEntries` is
  * exceeded, and drops entries past their retention on read.

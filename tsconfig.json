@@ -8,6 +8,7 @@
 		"declaration": true,
 		"declarationMap": true,
 		"sourceMap": true,
+		"rootDir": "./src",
 		"outDir": "./dist",
 		"declarationDir": "./dist/types",
 		"isolatedModules": true,
@@ -23,8 +24,7 @@
 		"skipLibCheck": true
 	},
 	"include": [
-		"./src/**/*.ts",
-		"index.ts"
+		"./src/**/*.ts"
 	],
 	"exclude": [
 		"node_modules",

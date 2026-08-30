@@ -2,7 +2,6 @@
 # published tarball to dist/.
 /src
 /tests
-/index.ts
 /docs
 node_modules
 eslint*
@@ -15,3 +14,4 @@ release.sh
 .nvmrc
 .vscode
 .github
+internal/

@@ -11,14 +11,6 @@
 			"types": "./dist/types/index.d.ts",
 			"default": "./dist/index.js"
 		},
-		"./http": {
-			"types": "./dist/types/http/index.d.ts",
-			"default": "./dist/http/index.js"
-		},
-		"./redis": {
-			"types": "./dist/types/redis/index.d.ts",
-			"default": "./dist/redis/index.js"
-		},
 		"./package.json": "./package.json"
 	},
 	"files": [
@@ -46,7 +38,7 @@
 		"typescript",
 		"esm"
 	],
-	"author": "",
+	"author": "grml",
 	"license": "ISC",
 	"repository": {
 		"type": "git",
